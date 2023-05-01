@@ -20,7 +20,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final _controller = TextEditingController();
 
-  List<Photo> _photos = [];
+
 
   @override
   void dispose() {
@@ -30,7 +30,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final photoProvider = PhotoProvider.of(context);
+    final viewModel = PhotoProvider.of(context).viewModel;
 
     return Scaffold(
       appBar: AppBar(
@@ -54,32 +54,41 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 suffixIcon: IconButton(
                   onPressed: () async {
-                    final photos = await photoProvider.api.fetch(_controller.text);
-                    setState(() {
-                      _photos = photos;
-                    });
+                    viewModel.fetch(_controller.text);
+                    final photos = await viewModel.api.fetch(_controller.text);
                   },
                   icon: const Icon(Icons.search),
                 ),
               ),
             ),
           ),
-          Expanded(
-            child: GridView.builder(
-                padding: EdgeInsets.all(16.0),
-                itemCount: _photos.length,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2, //2열
-                  //가로, 세로 여백 지정
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                ),
-                itemBuilder: (context, index) {
-                  final photo = _photos[index];
-                  return PhotoWidget(
-                    photo: photo,
-                  );
-                }),
+          StreamBuilder<List<Photo>>(
+            stream: viewModel.photoStream,
+            builder: (context, snapshot) {
+              if(!snapshot.hasData){
+                return const CircularProgressIndicator();
+              }
+
+              final photos = snapshot.data;
+
+              return Expanded(
+                child: GridView.builder(
+                    padding: EdgeInsets.all(16.0),
+                    itemCount: photos?.length,
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2, //2열
+                      //가로, 세로 여백 지정
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                    ),
+                    itemBuilder: (context, index) {
+                      final photo = photos![index];
+                      return PhotoWidget(
+                        photo: photo,
+                      );
+                    }),
+              );
+            }
           )
         ],
       ),
